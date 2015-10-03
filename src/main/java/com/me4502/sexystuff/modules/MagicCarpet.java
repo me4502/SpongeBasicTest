@@ -22,7 +22,7 @@ import org.spongepowered.api.world.World;
 import java.util.HashSet;
 import java.util.Set;
 
-@Module(moduleName = "MagicCarpet", onEnable = "onInit")
+@Module(moduleName = "MagicCarpet", onEnable = "onInit", onDisable = "onDisable")
 public class MagicCarpet {
 
     private Set<Player> enabledPlayers = new HashSet<>();
