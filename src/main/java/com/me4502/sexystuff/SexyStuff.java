@@ -32,5 +32,6 @@ public class SexyStuff {
     public void discoverModules() {
 
         moduleController.registerModule("com.me4502.sexystuff.modules.MagicCarpet");
+        moduleController.registerModule("com.me4502.sexystuff.modules.MidiSequencer");
     }
 }
