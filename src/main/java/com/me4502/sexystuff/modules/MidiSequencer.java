@@ -2,11 +2,16 @@ package com.me4502.sexystuff.modules;
 
 import com.me4502.modularframework.module.Module;
 import com.me4502.sexystuff.SexyStuff;
-import org.apache.commons.lang3.StringUtils;
 import org.spongepowered.api.effect.sound.SoundType;
 import org.spongepowered.api.effect.sound.SoundTypes;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.block.tileentity.ChangeSignEvent;
+import org.spongepowered.api.service.pagination.PaginationBuilder;
+import org.spongepowered.api.service.pagination.PaginationService;
+import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.Texts;
+import org.spongepowered.api.text.action.TextActions;
 import org.spongepowered.api.text.format.TextColors;
 import org.spongepowered.api.util.command.CommandException;
 import org.spongepowered.api.util.command.CommandResult;
@@ -71,6 +76,12 @@ public class MidiSequencer {
 
     }
 
+    @Listener
+    public void onSignChange(ChangeSignEvent event) {
+        if(event.getText().lines().get(1).toString().equals("[Music]"))
+            event.getText().lines().set(1, Texts.builder().append(Texts.of(TextColors.GREEN, "[Music]")).onClick(TextActions.runCommand("/music list")).build());
+    }
+
     private class JukeboxExecutor implements CommandExecutor {
 
         private Map<Player, MidiPlayer> midiPlayers = new HashMap<>();
@@ -81,17 +92,21 @@ public class MidiSequencer {
                 String midiName = (String) args.getOne("midi").get();
 
                 if(midiName.equals("list")) {
-                    List<String> midis = new ArrayList<>();
+                    List<Text> midis = new ArrayList<>();
 
                     File file = new File("music/");
                     if(file.exists()) {
                         for (File f : file.listFiles()) {
                             if (f.getName().endsWith(".mid") || f.getName().endsWith("midi"))
-                                midis.add(f.getName());
+                                midis.add(Texts.builder().append(Texts.of(TextColors.GREEN, f.getName())).onClick(TextActions.runCommand("/music " + f.getName())).onHover(TextActions.showText(Texts.of("Click to play!"))).build());
                         }
                     }
 
-                    src.sendMessage(Texts.of(TextColors.YELLOW, StringUtils.join(midis, ", ")));
+                    PaginationService paginationService = SexyStuff.game.getServiceManager().provide(PaginationService.class).get();
+                    PaginationBuilder builder = paginationService.builder();
+                    builder.contents(midis);
+                    builder.paddingString("=");
+                    builder.sendTo(src);
                 } else if(midiName.equals("stop")) {
                     if (midiPlayers.containsKey(src))
                         midiPlayers.get(src).stop();
@@ -108,13 +123,33 @@ public class MidiSequencer {
                             midiPlayers.get(src).stop();
                         MidiPlayer player = new MidiPlayer((Player) src, file);
                         midiPlayers.put((Player) src, player);
+
+                        src.sendMessage(Texts.of(TextColors.YELLOW, "Playing " + file.getName()));
                     } catch (MidiUnavailableException | InvalidMidiDataException | IOException e) {
                         src.sendMessage(Texts.of(TextColors.RED, "Unknown Song!"));
                         e.printStackTrace();
                     }
                 }
-            } else
-                src.sendMessage(Texts.of("This command can only be performed by a player!"));
+            } else {
+                String player = (String) args.getOne("midi").get();
+                Player p = SexyStuff.game.getServer().getPlayer(player).get();
+
+                List<Text> midis = new ArrayList<>();
+
+                File file = new File("music/");
+                if(file.exists()) {
+                    for (File f : file.listFiles()) {
+                        if (f.getName().endsWith(".mid") || f.getName().endsWith("midi"))
+                            midis.add(Texts.builder().append(Texts.of(TextColors.GREEN, f.getName())).onClick(TextActions.runCommand("/music " + f.getName())).onHover(TextActions.showText(Texts.of("Click to play!"))).build());
+                    }
+                }
+
+                PaginationService paginationService = SexyStuff.game.getServiceManager().provide(PaginationService.class).get();
+                PaginationBuilder builder = paginationService.builder();
+                builder.contents(midis);
+                builder.paddingString("=");
+                builder.sendTo(p);
+            }
             return CommandResult.empty();
         }
     }
